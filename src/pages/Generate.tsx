@@ -133,7 +133,29 @@ export default function Generate() {
       });
 
       setGeneratedContent(content);
-      toast.success('Content generated successfully!');
+      
+      // Save content to localStorage immediately after generation
+      const newContent: MarketingContent = {
+        id: crypto.randomUUID(),
+        ownerId: user?.id || 'anonymous',
+        productName: formData.productName,
+        price: formData.price ? parseFloat(formData.price) : undefined,
+        businessDescription: formData.businessDescription,
+        selectedLanguage: formData.language,
+        contentType: selectedType,
+        generatedText: content,
+        keywords: [],
+        createdAt: new Date().toISOString(),
+      };
+      
+      // Get existing content and add new
+      const CONTENT_KEY = 'ai_marketing_content';
+      const existing = localStorage.getItem(CONTENT_KEY);
+      const allContent = existing ? JSON.parse(existing) : [];
+      allContent.unshift(newContent); // Add to beginning
+      localStorage.setItem(CONTENT_KEY, JSON.stringify(allContent));
+      
+      toast.success('Content generated and saved!');
     } catch (error) {
       toast.error('Failed to generate content. Please try again.');
     } finally {

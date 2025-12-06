@@ -27,18 +27,22 @@ const saveUsers = (users: Record<string, { user: User; passwordHash: string }>) 
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
-// Simple hash function for demo (in production, use bcrypt on backend)
+// Password hashing with consistent salt (production should use bcrypt on backend)
+const SALT = 'ai_marketing_secure_salt_2024';
+
 const hashPassword = async (password: string): Promise<string> => {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'salt_for_demo');
+  const data = encoder.encode(password + SALT);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-const comparePassword = async (password: string, hash: string): Promise<boolean> => {
+// Compare password by hashing input and comparing to stored hash
+// CRITICAL: Never re-hash the stored hash - only hash the input password once
+const comparePassword = async (password: string, storedHash: string): Promise<boolean> => {
   const inputHash = await hashPassword(password);
-  return inputHash === hash;
+  return inputHash === storedHash;
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
