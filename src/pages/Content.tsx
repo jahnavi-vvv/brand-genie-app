@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,22 +16,29 @@ import {
   Lightbulb,
   Wand2,
   Plus,
+  RefreshCw,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-// Mock content storage
+// Content storage key
 const CONTENT_KEY = 'ai_marketing_content';
 
 const getStoredContent = (): MarketingContent[] => {
-  const stored = localStorage.getItem(CONTENT_KEY);
-  return stored ? JSON.parse(stored) : [];
+  try {
+    const stored = localStorage.getItem(CONTENT_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
 };
 
 const saveContent = (content: MarketingContent[]) => {
   localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
 };
 
-const contentTypeIcons = {
+const contentTypeIcons: Record<string, any> = {
   caption: MessageSquare,
   description: Lightbulb,
   hashtags: Hash,
@@ -40,8 +47,31 @@ const contentTypeIcons = {
 };
 
 export default function Content() {
-  const [contents, setContents] = useState<MarketingContent[]>(getStoredContent);
+  const [contents, setContents] = useState<MarketingContent[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch content on mount and when localStorage changes
+  const fetchContent = useCallback(() => {
+    setIsLoading(true);
+    const stored = getStoredContent();
+    setContents(stored);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchContent();
+    
+    // Listen for storage changes (when content is added from Generate page)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === CONTENT_KEY) {
+        fetchContent();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [fetchContent]);
 
   const handleDelete = (id: string) => {
     const updated = contents.filter((c) => c.id !== id);
@@ -80,16 +110,38 @@ export default function Content() {
               View and manage your generated marketing content
             </p>
           </div>
-          <Button asChild>
-            <Link to="/generate">
-              <Plus className="h-4 w-4 mr-2" />
-              Create New
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={fetchContent} title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button asChild>
+              <Link to="/generate">
+                <Plus className="h-4 w-4 mr-2" />
+                Create New
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Content List */}
-        {contents.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-1/3 bg-muted rounded" />
+                      <div className="h-3 w-1/2 bg-muted rounded" />
+                      <div className="h-3 w-full bg-muted rounded" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : contents.length > 0 ? (
           <div className="space-y-4">
             {contents.map((content) => {
               const Icon = contentTypeIcons[content.contentType] || FileText;
@@ -104,13 +156,19 @@ export default function Content() {
                           <Icon className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-medium capitalize">
                               {content.contentType.replace('_', ' ')}
                             </h3>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
                               {langName}
                             </span>
+                            {content.createdAt && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(content.createdAt), 'MMM d, yyyy')}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm font-medium text-foreground mb-1">
                             {content.productName}

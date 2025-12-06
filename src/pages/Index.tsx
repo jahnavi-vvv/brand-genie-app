@@ -90,9 +90,11 @@ export default function Index() {
               AI-Powered Marketing for Small Business
             </div>
             
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-slide-up leading-tight">
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-slide-up leading-tight relative z-10">
               Create Stunning Marketing Content in{' '}
-              <span className="text-gradient">Multiple Languages</span>
+              <span className="inline-block bg-gradient-to-r from-primary via-warning to-primary bg-clip-text text-transparent">
+                Multiple Languages
+              </span>
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '100ms' }}>
